@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Weather Station</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 25px 15px;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(145deg,#10233f,#183b60);
+  color: white;
+}
+main { max-width: 900px; margin: auto; }
+header { text-align: center; margin-bottom: 25px; }
+h1 { margin-bottom: 8px; }
+.muted { color: #b9cce0; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap: 15px;
+}
+.card {
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 18px;
+  padding: 22px;
+}
+.label { color: #c4d7eb; font-size: 14px; }
+.value { font-size: 42px; font-weight: bold; margin: 12px 0; }
+.unit { font-size: 20px; }
+.chart { margin-top: 18px; }
+.status { font-size: 13px; color: #b9cce0; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>🌤️ My Weather Station</h1>
+  <div class="muted">Live readings from my ESP32</div>
+  <p class="status" id="updated">Connecting...</p>
+</header>
+
+<section class="grid">
+  <div class="card">
+    <div class="label">🌡️ Indoor temperature</div>
+    <div class="value" id="temperature">--<span class="unit"> °C</span></div>
+    <div class="status">From your DHT11 sensor</div>
+  </div>
+  <div class="card">
+    <div class="label">💧 Indoor humidity</div>
+    <div class="value" id="humidity">--<span class="unit"> %</span></div>
+    <div class="status">From your DHT11 sensor</div>
+  </div>
+  <div class="card">
+    <div class="label">🌤️ Outdoor weather</div>
+    <div class="value" id="outdoor">--</div>
+    <div class="status" id="outdoorDetails">Loading local forecast...</div>
+  </div>
+</section>
+
+<div class="card chart">
+  <h2>Temperature history</h2>
+  <canvas id="tempChart"></canvas>
+</div>
+<div class="card chart">
+  <h2>Humidity history</h2>
+  <canvas id="humidityChart"></canvas>
+</div>
+</main>
+
+<script>
+const CHANNEL_ID = "3573877";
+const FEED_URL =
+  `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?results=40`;
+
+const tempChart = new Chart(document.getElementById("tempChart"), {
+  type: "line",
+  data: { labels: [], datasets: [{
+    label: "Temperature °C", data: [], borderColor: "#ffb45c",
+    backgroundColor: "rgba(255,180,92,.15)", fill: true, tension: .3
+  }]},
+  options: { responsive: true, scales: { y: { ticks: { color: "white" } },
+    x: { ticks: { color: "white", maxTicksLimit: 6 } } },
+    plugins: { legend: { labels: { color: "white" } } } }
+});
+
+const humidityChart = new Chart(document.getElementById("humidityChart"), {
+  type: "line",
+  data: { labels: [], datasets: [{
+    label: "Humidity %", data: [], borderColor: "#65d5ff",
+    backgroundColor: "rgba(101,213,255,.15)", fill: true, tension: .3
+  }]},
+  options: { responsive: true, scales: { y: { ticks: { color: "white" } },
+    x: { ticks: { color: "white", maxTicksLimit: 6 } } },
+    plugins: { legend: { labels: { color: "white" } } } }
+});
+
+async function updateReadings() {
+  try {
+    const response = await fetch(FEED_URL);
+    if (!response.ok) throw new Error("ThingSpeak request failed");
+    const data = await response.json();
+    const feeds = data.feeds || [];
+
+    const valid = feeds.filter(f =>
+      f.field1 !== null && f.field2 !== null &&
+      Number.isFinite(Number(f.field1)) &&
+      Number.isFinite(Number(f.field2))
+    );
+
+    if (!valid.length) throw new Error("No readings yet");
+
+    const latest = valid[valid.length - 1];
+    document.getElementById("temperature").innerHTML =
+      `${Number(latest.field1).toFixed(1)}<span class="unit"> °C</span>`;
+    document.getElementById("humidity").innerHTML =
+      `${Number(latest.field2).toFixed(0)}<span class="unit"> %</span>`;
+
+    const labels = valid.map(f =>
+      new Date(f.created_at).toLocaleTimeString([], {
+        hour: "2-digit", minute: "2-digit"
+      })
+    );
+
+    tempChart.data.labels = labels;
+    tempChart.data.datasets[0].data = valid.map(f => Number(f.field1));
+    tempChart.update();
+
+    humidityChart.data.labels = labels;
+    humidityChart.data.datasets[0].data = valid.map(f => Number(f.field2));
+    humidityChart.update();
+
+    document.getElementById("updated").textContent =
+      "Last reading: " + new Date(latest.created_at).toLocaleString();
+  } catch (error) {
+    document.getElementById("updated").textContent =
+      "Waiting for readings: " + error.message;
+  }
+}
+
+async function updateOutdoor() {
+  try {
+    const url = "https://api.open-meteo.com/v1/forecast" +
+      "?latitude=51.5639&longitude=0.4092" +
+      "&current=temperature_2m,relative_humidity_2m,weather_code";
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Weather unavailable");
+    const data = await response.json();
+    const current = data.current;
+    const code = current.weather_code;
+
+    let description = "Cloudy";
+    let emoji = "☁️";
+    if (code === 0) { description = "Clear"; emoji = "☀️"; }
+    else if ([1,2].includes(code)) { description = "Partly cloudy"; emoji = "🌤️"; }
+    else if (code === 3) { description = "Overcast"; emoji = "☁️"; }
+    else if ([45,48].includes(code)) { description = "Fog"; emoji = "🌫️"; }
+    else if (code >= 51 && code <= 67) { description = "Drizzle / rain"; emoji = "🌧️"; }
+    else if (code >= 71 && code <= 77) { description = "Snow"; emoji = "❄️"; }
+    else if (code >= 80 && code <= 82) { description = "Rain showers"; emoji = "🌦️"; }
+    else if (code >= 95) { description = "Thunderstorm"; emoji = "⛈️"; }
+
+    document.getElementById("outdoor").textContent =
+      `${emoji} ${current.temperature_2m} °C`;
+    document.getElementById("outdoorDetails").textContent =
+      `${description} · Humidity ${current.relative_humidity_2m}%`;
+  } catch (error) {
+    document.getElementById("outdoorDetails").textContent =
+      "Outdoor weather unavailable";
+  }
+}
+
+updateReadings();
+updateOutdoor();
+setInterval(updateReadings, 30000);
+setInterval(updateOutdoor, 900000);
+</script>
+</body>
+</html>
