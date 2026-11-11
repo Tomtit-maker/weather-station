@@ -3,74 +3,260 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Weather Station</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weather Station | Live Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  padding: 25px 15px;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(145deg,#10233f,#183b60);
-  color: white;
+:root {
+  --bg:#081321;
+  --panel:#101f32;
+  --panel2:#14263c;
+  --line:rgba(180,210,240,.11);
+  --muted:#91a5bd;
+  --white:#f3f7fc;
+  --blue:#65c8ff;
+  --cyan:#70e0d0;
+  --orange:#ffb86b;
 }
-main { max-width: 900px; margin: auto; }
-header { text-align: center; margin-bottom: 25px; }
-h1 { margin-bottom: 8px; }
-.muted { color: #b9cce0; }
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  min-height:100vh;
+  padding:34px 20px 50px;
+  color:var(--white);
+  background:
+    radial-gradient(ellipse at 10% 0%,rgba(43,111,168,.22),transparent 38%),
+    radial-gradient(ellipse at 95% 15%,rgba(50,147,151,.12),transparent 32%),
+    var(--bg);
+  font-family:"DM Sans",Arial,sans-serif;
+}
+main { max-width:1120px; margin:auto; }
+.topbar {
+  display:flex; justify-content:space-between; align-items:center;
+  gap:15px; margin-bottom:34px; flex-wrap:wrap;
+}
+.brand { display:flex; align-items:center; gap:13px; }
+.brand-icon {
+  width:48px; height:48px; display:grid; place-items:center;
+  border-radius:15px; font-size:25px;
+  background:linear-gradient(145deg,#1e5274,#183c55);
+  border:1px solid rgba(120,205,255,.22);
+}
+.brand h1 {
+  font:700 20px "Space Grotesk",sans-serif;
+  margin:0; letter-spacing:-.5px;
+}
+.brand p { margin:3px 0 0; color:var(--muted); font-size:12px; }
+.live {
+  display:flex; align-items:center; gap:8px;
+  color:#9be8d2; background:rgba(70,190,155,.09);
+  border:1px solid rgba(90,220,180,.2);
+  border-radius:30px; padding:9px 13px; font-size:12px;
+}
+.dot {
+  width:8px;height:8px;border-radius:50%;
+  background:#65e0b7; box-shadow:0 0 10px #65e0b7;
+}
+.hero {
+  display:flex; justify-content:space-between; align-items:flex-end;
+  gap:20px; flex-wrap:wrap; margin-bottom:23px;
+}
+.eyebrow {
+  color:var(--blue); text-transform:uppercase;
+  letter-spacing:2px; font-size:10px; font-weight:700;
+}
+.hero h2 {
+  font:600 clamp(27px,5vw,38px) "Space Grotesk",sans-serif;
+  margin:8px 0 5px; letter-spacing:-1.3px;
+}
+.hero p { margin:0; color:var(--muted); font-size:13px; }
+.updated {
+  color:var(--muted); font-size:11px; text-align:right;
+  line-height:1.8;
+}
 .grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
-  gap: 15px;
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
 }
 .card {
-  background: rgba(255,255,255,.10);
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: 18px;
-  padding: 22px;
+  min-width:0; padding:22px;
+  background:linear-gradient(145deg,rgba(22,42,65,.96),rgba(14,29,47,.96));
+  border:1px solid var(--line); border-radius:20px;
+  box-shadow:0 12px 35px rgba(0,0,0,.12);
 }
-.label { color: #c4d7eb; font-size: 14px; }
-.value { font-size: 42px; font-weight: bold; margin: 12px 0; }
-.unit { font-size: 20px; }
-.chart { margin-top: 18px; }
-.status { font-size: 13px; color: #b9cce0; }
+.card-head {
+  display:flex; justify-content:space-between; align-items:center;
+  gap:10px; margin-bottom:22px;
+}
+.card-label {
+  color:#b5c6d9; font-size:12px; font-weight:600;
+  letter-spacing:.3px;
+}
+.card-icon {
+  width:36px;height:36px;display:grid;place-items:center;
+  border-radius:12px;background:rgba(255,255,255,.06);
+  font-size:18px;
+}
+.reading {
+  font:600 clamp(39px,7vw,55px) "Space Grotesk",sans-serif;
+  letter-spacing:-2px; line-height:1.1;
+}
+.reading span { font-size:21px; color:#b6c9dc; letter-spacing:0; }
+.subline {
+  margin-top:13px; color:var(--muted); font-size:12px;
+}
+.mini-tag {
+  display:inline-flex; align-items:center; gap:6px;
+  border-radius:20px; padding:6px 9px;
+  background:rgba(255,255,255,.055);
+  color:#c5d6e7; font-size:10px;
+}
+.temp-accent { color:var(--orange); }
+.humidity-accent { color:var(--blue); }
+.outdoor-card {
+  grid-column:span 2;
+  background:
+    radial-gradient(circle at 88% 40%,rgba(86,177,208,.18),transparent 29%),
+    linear-gradient(120deg,#142c43,#12273c);
+}
+.outdoor-content {
+  display:flex; justify-content:space-between; align-items:center;
+  gap:15px; flex-wrap:wrap;
+}
+.outdoor-main { display:flex; align-items:center; gap:18px; }
+.weather-emoji { font-size:54px; filter:drop-shadow(0 5px 12px rgba(0,0,0,.2)); }
+.outdoor-temp {
+  font:600 46px "Space Grotesk",sans-serif; letter-spacing:-2px;
+}
+.outdoor-desc { color:#c3d4e5; font-size:13px; margin-top:2px; }
+.outdoor-details { display:flex; gap:25px; flex-wrap:wrap; }
+.detail-label { color:var(--muted); font-size:10px; margin-bottom:6px; }
+.detail-value { font-size:15px; font-weight:700; }
+.chart-card { grid-column:span 2; }
+.chart-heading {
+  display:flex; justify-content:space-between; align-items:center;
+  gap:12px; margin-bottom:17px; flex-wrap:wrap;
+}
+.chart-heading h3 {
+  margin:0; font:600 16px "Space Grotesk",sans-serif;
+}
+.chart-note { color:var(--muted); font-size:11px; }
+.chart-wrap { height:230px; position:relative; }
+.footer {
+  display:flex; justify-content:space-between; gap:12px;
+  flex-wrap:wrap; color:#71869d; font-size:10px;
+  padding:22px 4px 0;
+}
+.error { color:#ffc27b; }
+@media(max-width:620px) {
+  body { padding:22px 13px 35px; }
+  .topbar { margin-bottom:27px; }
+  .grid { gap:11px; }
+  .card { padding:17px; border-radius:17px; }
+  .card-head { margin-bottom:17px; }
+  .outdoor-card,.chart-card { grid-column:span 2; }
+  .outdoor-details { gap:18px; }
+  .chart-wrap { height:210px; }
+  .updated { text-align:left; }
+}
 </style>
 </head>
 <body>
 <main>
-<header>
-  <h1>🌤️ My Weather Station</h1>
-  <div class="muted">Live readings from my ESP32</div>
-  <p class="status" id="updated">Connecting...</p>
-</header>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">🌦️</div>
+      <div>
+        <h1>Weather Station</h1>
+        <p>Personal live weather monitoring</p>
+      </div>
+    </div>
+    <div class="live"><span class="dot"></span><span id="connection">CONNECTING</span></div>
+  </header>
 
-<section class="grid">
-  <div class="card">
-    <div class="label">🌡️ Indoor temperature</div>
-    <div class="value" id="temperature">--<span class="unit"> °C</span></div>
-    <div class="status">From your DHT11 sensor</div>
-  </div>
-  <div class="card">
-    <div class="label">💧 Indoor humidity</div>
-    <div class="value" id="humidity">--<span class="unit"> %</span></div>
-    <div class="status">From your DHT11 sensor</div>
-  </div>
-  <div class="card">
-    <div class="label">🌤️ Outdoor weather</div>
-    <div class="value" id="outdoor">--</div>
-    <div class="status" id="outdoorDetails">Loading local forecast...</div>
-  </div>
-</section>
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Your personal weather dashboard</div>
+      <h2>Weather at a glance.</h2>
+      <p>Indoor sensor readings and outdoor conditions in one place.</p>
+    </div>
+    <div class="updated">
+      <div id="clock">--:--:--</div>
+      <div id="lastUpdate">Waiting for first reading</div>
+    </div>
+  </section>
 
-<div class="card chart">
-  <h2>Temperature history</h2>
-  <canvas id="tempChart"></canvas>
-</div>
-<div class="card chart">
-  <h2>Humidity history</h2>
-  <canvas id="humidityChart"></canvas>
-</div>
+  <section class="grid">
+    <article class="card">
+      <div class="card-head">
+        <div class="card-label">INDOOR TEMPERATURE</div>
+        <div class="card-icon">🌡️</div>
+      </div>
+      <div class="reading temp-accent" id="temperature">--<span> °C</span></div>
+      <div class="subline">Measured by your DHT11 sensor</div>
+      <div style="margin-top:16px"><span class="mini-tag">● LIVE SENSOR</span></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-label">INDOOR HUMIDITY</div>
+        <div class="card-icon">💧</div>
+      </div>
+      <div class="reading humidity-accent" id="humidity">--<span> %</span></div>
+      <div class="subline">Relative humidity in your room</div>
+      <div style="margin-top:16px"><span class="mini-tag">● LIVE SENSOR</span></div>
+    </article>
+
+    <article class="card outdoor-card">
+      <div class="card-head">
+        <div class="card-label">OUTDOOR CONDITIONS</div>
+        <div class="card-icon">🌍</div>
+      </div>
+      <div class="outdoor-content">
+        <div class="outdoor-main">
+          <div class="weather-emoji" id="weatherEmoji">🌤️</div>
+          <div>
+            <div class="outdoor-temp" id="outdoorTemp">--°</div>
+            <div class="outdoor-desc" id="outdoorDescription">Fetching local weather...</div>
+          </div>
+        </div>
+        <div class="outdoor-details">
+          <div>
+            <div class="detail-label">OUTDOOR HUMIDITY</div>
+            <div class="detail-value" id="outdoorHumidity">--%</div>
+          </div>
+          <div>
+            <div class="detail-label">WEATHER SOURCE</div>
+            <div class="detail-value">Open-Meteo</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="card chart-card">
+      <div class="chart-heading">
+        <h3>Temperature history</h3>
+        <span class="chart-note">Latest 40 readings</span>
+      </div>
+      <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+    </article>
+
+    <article class="card chart-card">
+      <div class="chart-heading">
+        <h3>Humidity history</h3>
+        <span class="chart-note">Latest 40 readings</span>
+      </div>
+      <div class="chart-wrap"><canvas id="humidityChart"></canvas></div>
+    </article>
+  </section>
+
+  <footer class="footer">
+    <span>POWERED BY ESP32 · DHT11 · THINGSPEAK</span>
+    <span>Outdoor forecast by Open-Meteo</span>
+  </footer>
 </main>
 
 <script>
@@ -78,32 +264,74 @@ const CHANNEL_ID = "3573877";
 const FEED_URL =
   `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?results=40`;
 
-const tempChart = new Chart(document.getElementById("tempChart"), {
-  type: "line",
-  data: { labels: [], datasets: [{
-    label: "Temperature °C", data: [], borderColor: "#ffb45c",
-    backgroundColor: "rgba(255,180,92,.15)", fill: true, tension: .3
-  }]},
-  options: { responsive: true, scales: { y: { ticks: { color: "white" } },
-    x: { ticks: { color: "white", maxTicksLimit: 6 } } },
-    plugins: { legend: { labels: { color: "white" } } } }
-});
+Chart.defaults.color = "#91a5bd";
+Chart.defaults.font.family = "DM Sans, Arial, sans-serif";
 
-const humidityChart = new Chart(document.getElementById("humidityChart"), {
-  type: "line",
-  data: { labels: [], datasets: [{
-    label: "Humidity %", data: [], borderColor: "#65d5ff",
-    backgroundColor: "rgba(101,213,255,.15)", fill: true, tension: .3
-  }]},
-  options: { responsive: true, scales: { y: { ticks: { color: "white" } },
-    x: { ticks: { color: "white", maxTicksLimit: 6 } } },
-    plugins: { legend: { labels: { color: "white" } } } }
-});
+function makeChart(canvasId, label, color, fillColor) {
+  return new Chart(document.getElementById(canvasId), {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [{
+        label,
+        data: [],
+        borderColor: color,
+        backgroundColor: fillColor,
+        borderWidth: 2.5,
+        fill: true,
+        tension: .38,
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        pointBackgroundColor: color
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: "index" },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#081321",
+          borderColor: "rgba(180,210,240,.2)",
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxTicksLimit: 6, maxRotation: 0 }
+        },
+        y: {
+          grid: { color: "rgba(180,210,240,.08)" },
+          border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+const tempChart = makeChart(
+  "tempChart", "Temperature °C", "#ffb86b", "rgba(255,184,107,.12)"
+);
+const humidityChart = makeChart(
+  "humidityChart", "Humidity %", "#65c8ff", "rgba(101,200,255,.12)"
+);
+
+function updateClock() {
+  document.getElementById("clock").textContent =
+    new Date().toLocaleTimeString("en-GB");
+}
+updateClock();
+setInterval(updateClock, 1000);
 
 async function updateReadings() {
+  const status = document.getElementById("connection");
   try {
-    const response = await fetch(FEED_URL);
-    if (!response.ok) throw new Error("ThingSpeak request failed");
+    const response = await fetch(FEED_URL, { cache: "no-store" });
+    if (!response.ok) throw new Error("Could not reach ThingSpeak");
     const data = await response.json();
     const feeds = data.feeds || [];
 
@@ -112,66 +340,81 @@ async function updateReadings() {
       Number.isFinite(Number(f.field1)) &&
       Number.isFinite(Number(f.field2))
     );
-
-    if (!valid.length) throw new Error("No readings yet");
+    if (!valid.length) throw new Error("No sensor readings found yet");
 
     const latest = valid[valid.length - 1];
+    const temp = Number(latest.field1);
+    const humidity = Number(latest.field2);
+
     document.getElementById("temperature").innerHTML =
-      `${Number(latest.field1).toFixed(1)}<span class="unit"> °C</span>`;
+      `${temp.toFixed(1)}<span> °C</span>`;
     document.getElementById("humidity").innerHTML =
-      `${Number(latest.field2).toFixed(0)}<span class="unit"> %</span>`;
+      `${humidity.toFixed(0)}<span> %</span>`;
 
     const labels = valid.map(f =>
-      new Date(f.created_at).toLocaleTimeString([], {
+      new Date(f.created_at).toLocaleTimeString("en-GB", {
         hour: "2-digit", minute: "2-digit"
       })
     );
 
     tempChart.data.labels = labels;
-    tempChart.data.datasets[0].data = valid.map(f => Number(f.field1));
+    tempChart.data.datasets[0].data =
+      valid.map(f => Number(f.field1));
     tempChart.update();
 
     humidityChart.data.labels = labels;
-    humidityChart.data.datasets[0].data = valid.map(f => Number(f.field2));
+    humidityChart.data.datasets[0].data =
+      valid.map(f => Number(f.field2));
     humidityChart.update();
 
-    document.getElementById("updated").textContent =
-      "Last reading: " + new Date(latest.created_at).toLocaleString();
+    document.getElementById("lastUpdate").textContent =
+      "Sensor update: " + new Date(latest.created_at).toLocaleTimeString();
+
+    status.textContent = "LIVE";
+    status.parentElement.style.color = "#9be8d2";
+    status.parentElement.style.borderColor = "rgba(90,220,180,.2)";
   } catch (error) {
-    document.getElementById("updated").textContent =
-      "Waiting for readings: " + error.message;
+    status.textContent = "CHECK CONNECTION";
+    status.parentElement.style.color = "#ffc27b";
+    status.parentElement.style.borderColor = "rgba(255,194,123,.3)";
+    document.getElementById("lastUpdate").textContent = error.message;
   }
 }
 
 async function updateOutdoor() {
   try {
-    const url = "https://api.open-meteo.com/v1/forecast" +
+    const url =
+      "https://api.open-meteo.com/v1/forecast" +
       "?latitude=51.5639&longitude=0.4092" +
       "&current=temperature_2m,relative_humidity_2m,weather_code";
-    const response = await fetch(url);
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) throw new Error("Weather unavailable");
     const data = await response.json();
-    const current = data.current;
-    const code = current.weather_code;
+    const c = data.current;
+    const code = c.weather_code;
 
     let description = "Cloudy";
     let emoji = "☁️";
-    if (code === 0) { description = "Clear"; emoji = "☀️"; }
+    if (code === 0) { description = "Clear sky"; emoji = "☀️"; }
     else if ([1,2].includes(code)) { description = "Partly cloudy"; emoji = "🌤️"; }
     else if (code === 3) { description = "Overcast"; emoji = "☁️"; }
-    else if ([45,48].includes(code)) { description = "Fog"; emoji = "🌫️"; }
-    else if (code >= 51 && code <= 67) { description = "Drizzle / rain"; emoji = "🌧️"; }
+    else if ([45,48].includes(code)) { description = "Foggy"; emoji = "🌫️"; }
+    else if (code >= 51 && code <= 57) { description = "Drizzle"; emoji = "🌦️"; }
+    else if (code >= 61 && code <= 67) { description = "Rain"; emoji = "🌧️"; }
     else if (code >= 71 && code <= 77) { description = "Snow"; emoji = "❄️"; }
     else if (code >= 80 && code <= 82) { description = "Rain showers"; emoji = "🌦️"; }
+    else if (code >= 85 && code <= 86) { description = "Snow showers"; emoji = "🌨️"; }
     else if (code >= 95) { description = "Thunderstorm"; emoji = "⛈️"; }
 
-    document.getElementById("outdoor").textContent =
-      `${emoji} ${current.temperature_2m} °C`;
-    document.getElementById("outdoorDetails").textContent =
-      `${description} · Humidity ${current.relative_humidity_2m}%`;
+    document.getElementById("weatherEmoji").textContent = emoji;
+    document.getElementById("outdoorTemp").textContent =
+      `${Math.round(c.temperature_2m)}°`;
+    document.getElementById("outdoorDescription").textContent = description;
+    document.getElementById("outdoorHumidity").textContent =
+      `${c.relative_humidity_2m}%`;
   } catch (error) {
-    document.getElementById("outdoorDetails").textContent =
-      "Outdoor weather unavailable";
+    document.getElementById("outdoorDescription").textContent =
+      "Outdoor weather temporarily unavailable";
   }
 }
 
